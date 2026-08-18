@@ -1,0 +1,605 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index 7ec84ef..96764fb 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,310 +1,321 @@
+-import { useState } from "react";
++import React, { useState, useEffect } from "react";
++import { motion, useScroll, useTransform } from "framer-motion";
++import { useInView } from "react-intersection-observer";
++import "./App.css";
+ 
+-const NAV_LINKS = ["Freelancers", "Creators", "Pricing"];
++// 1. Scroll-triggered Fade In Section (General use)
++function FadeInSection({ children }) {
++  const [ref, inView] = useInView({
++    triggerOnce: true,
++    threshold: 0.2,
++  });
+ 
+-const VALUE_PROPS = [
+-  {
+-    icon: "palette",
+-    title: "Creators",
+-    desc: "Photographers, editors, and digital artists ready to bring your vision to life with precision.",
+-    cta: "Browse Creators",
+-  },
+-  {
+-    icon: "code",
+-    title: "Freelancers",
+-    desc: "Top-tier developers and designers for your next big project or long-term product growth.",
+-    cta: "Hire Freelancers",
+-  },
+-  {
+-    icon: "location_on",
+-    title: "On-ground",
+-    desc: "Local experts for event management, physical production, and regional logistical support.",
+-    cta: "Find Local Experts",
++  return (
++    <motion.div
++      ref={ref}
++      initial={{ opacity: 0, y: 50 }}
++      animate={inView ? { opacity: 1, y: 0 } : {}}
++      transition={{ duration: 0.7 }}
++    >
++      {children}
++    </motion.div>
++  );
++}
++
++// 2. Card Reveal Animation Settings
++const cardVariants = {
++  hidden: {
++    opacity: 0,
++    y: 60,
++    scale: 0.95
+   },
+-];
++  visible: {
++    opacity: 1,
++    y: 0,
++    scale: 1
++  }
++};
+ 
+-const STATS = [
+-  { value: "15K+", label: "Active Users", border: false },
+-  { value: "8K+", label: "Projects Delivered", border: true },
+-  { value: "4.9", label: "User Rating", border: false, star: true },
+-];
++// 3. Sub-component for individual Stacking Cards
++function ScrollCard({ slide, idx, totalSlides, cardVariants }) {
++  const [ref, inView] = useInView({
++    threshold: 0.15,
++    triggerOnce: false,
++  });
+ 
+-const FOOTER_LINKS = ["Privacy Policy", "Terms of Service", "Contact Support"];
++  return (
++    <div
++      className="sticky w-full pb-4 flex justify-center"
++      style={{
++        top: `${88 + idx * 16}px`,
++        zIndex: 10 + idx,
++        marginTop: idx > 0 ? "50vh" : "0",
++      }}
++    >
++      <motion.div
++        ref={ref}
++        variants={cardVariants}
++        initial="hidden"
++        whileInView="visible"
++        viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
++        transition={{ duration: 0.6 }}
++        className="w-full h-[calc(100vh-140px)] max-w-[1400px] bg-[#0c0d10] rounded-[24px] md:rounded-[40px] relative overflow-hidden flex flex-col justify-between p-6 md:p-12 shadow-2xl border border-black/25"
++      >
++        {/* Background Image with Zoom on inView */}
++        <div className="absolute inset-0 overflow-hidden">
++          <img
++            src={slide.bg}
++            alt={slide.label}
++            className={`absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[4000ms] ease-out ${
++              inView ? "scale-105 opacity-80" : "scale-100 opacity-60"
++            }`}
++          />
++          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/40 z-1" />
++        </div>
+ 
+-export default function App() {
+-  const [query, setQuery] = useState("");
++        {/* Spacer to align vertical flex layout */}
++        <div className="h-0 w-full relative z-10" />
+ 
+-  return (
+-    <div className="bg-[#f9f9fb] text-[#1a1c1d] antialiased selection:bg-[#d7e2ff] selection:text-[#001b3f]">
+-      {/* ── Nav ── */}
+-      <nav className="fixed top-0 w-full z-50 bg-[#f9f9fb]/80 backdrop-blur-3xl border-b border-[#c1c6d6]/20">
+-        <div className="w-full px-8 lg:px-12 flex justify-between items-center h-16">
+-          {/* Logo + links */}
+-          <div className="flex items-center gap-8">
+-            <div className="flex flex-col">
+-              <span className="text-2xl font-bold tracking-tighter text-[#1a1c1d] leading-none">
+-                BridgeNow
+-              </span>
+-              <span className="text-[10px] text-[#0059b5] font-bold uppercase tracking-widest mt-0.5">
+-                Where talent meets opportunity
+-              </span>
++        {/* Middle Overlay: Glassmorphic Left Card + Floating Right Pill */}
++        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between w-full h-full my-auto pb-4 gap-8">
++          
++          {/* Left Glassmorphic details */}
++          <div className="w-full max-w-sm md:max-w-md bg-black/25 backdrop-blur-2xl border border-white/10 p-8 md:p-10 rounded-[28px] self-start md:self-center">
++            <h3 className="text-white text-3xl md:text-5xl font-extrabold tracking-tight leading-tight font-outfit">
++              {slide.title}
++            </h3>
++            <p className="text-white/80 text-sm md:text-base mt-4 font-medium leading-relaxed">
++              {slide.desc}
++            </p>
++          </div>
++
++          {/* Right overlay floating pill */}
++          <div className="bg-white/95 backdrop-blur-md px-6 py-4 rounded-[24px] shadow-2xl flex items-center justify-between gap-8 w-full max-w-[260px] self-end md:self-center">
++            <div className="flex items-center gap-3">
++              <div className={`w-9 h-9 rounded-full ${slide.badgeIconBg} flex items-center justify-center text-white`}>
++                <span className="material-symbols-outlined text-lg font-bold">
++                  {slide.badgeIcon}
++                </span>
++              </div>
++              <div className="flex flex-col">
++                <span className="text-[#1a1c1d] font-bold text-xs">{slide.badgeText}</span>
++                <span className="text-[#71717a] font-semibold text-[10px] mt-0.5">{slide.badgeSub}</span>
++              </div>
+             </div>
+-            <div className="hidden md:flex gap-4">
+-              <a
+-                href="#"
+-                className="text-sm font-bold text-[#0059b5] border-b-2 border-[#0059b5]"
+-              >
+-                Discover
+-              </a>
+-              {NAV_LINKS.map((l) => (
+-                <a
+-                  key={l}
+-                  href="#"
+-                  className="text-sm font-medium text-[#414753] hover:text-[#0059b5] transition-colors duration-300"
+-                >
+-                  {l}
+-                </a>
+-              ))}
++            <div>
++              <span className="text-emerald-600 font-bold text-lg">{slide.badgeValue}</span>
+             </div>
+           </div>
+ 
+-          {/* Actions */}
+-          <div className="flex items-center gap-4">
+-            <a
+-              href="#"
+-              className="hidden md:block text-sm font-medium text-[#414753] hover:text-[#1a1c1d] transition-colors"
+-            >
+-              Login
+-            </a>
+-            <button className="bg-[#0071e3] text-white px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:opacity-90">
+-              Explore Talent
+-            </button>
+-          </div>
+         </div>
+-      </nav>
+ 
+-      <main className="pt-32">
+-        {/* ── Hero ── */}
+-        <section className="max-w-[980px] mx-auto px-6 text-center mb-20">
+-          <div className="inline-flex items-center gap-2 bg-[#f3f3f5] px-4 py-1.5 rounded-full border border-[#c1c6d6]/30 mb-8">
+-            <span className="material-symbols-outlined text-[#0059b5] text-[18px]">
+-              verified
+-            </span>
+-            <span className="text-xs font-semibold text-[#414753] tracking-wide">
+-              Trusted by 10,000+ creators &amp; brands
+-            </span>
+-          </div>
++        {/* ── BOTTOM PROGRESS TRACKS (STATIC SEGMENT FILLED FOR CURRENT ACTIVE CARD) ── */}
++        <div className="relative z-10 grid grid-cols-3 gap-4 md:gap-8 w-full border-t border-white/10 pt-6">
++          {Array.from({ length: totalSlides }).map((_, i) => (
++            <div key={i} className="flex flex-col gap-1.5">
++              {/* Text Label */}
++              <span className={`text-[10px] md:text-xs tracking-wider uppercase select-none transition-colors ${
++                i === idx ? "text-white font-bold" : "text-white/40 font-semibold"
++              }`}>
++                {i === 0 ? "sparks offers" : i === 1 ? "slice in 3" : "Rewards"}
++              </span>
+ 
+-          <h1 className="text-5xl md:text-[80px] font-bold tracking-[-0.04em] leading-tight text-[#1a1c1d] mb-8">
+-            Find Talent.
+-            <br />
+-            Build Faster.
+-            <br />
+-            <span
+-              style={{
+-                background: "linear-gradient(135deg,#0059b5 0%,#0071e3 100%)",
+-                WebkitBackgroundClip: "text",
+-                WebkitTextFillColor: "transparent",
+-              }}
+-            >
+-              Grow Bigger.
+-            </span>
+-          </h1>
++              {/* Progress track */}
++              <div className="progress-track w-full">
++                <div
++                  className="progress-fill"
++                  style={{
++                    width: i === idx ? "100%" : "0%",
++                    backgroundColor: i === idx ? "#ffffff" : "transparent"
++                  }}
++                />
++              </div>
++            </div>
++          ))}
++        </div>
++      </motion.div>
++    </div>
++  );
++}
+ 
+-          <p className="text-xl text-[#5f5e60] max-w-2xl mx-auto mb-6 leading-relaxed">
+-            BridgeNow helps brands connect with creators, freelancers,
+-            photographers, editors, developers and on-ground professionals
+-            seamlessly.
+-          </p>
++export default function App() {
++  const [isScrolled, setIsScrolled] = useState(false);
+ 
+-          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+-            <button className="bg-[#0071e3] text-white px-8 py-4 rounded-full text-sm font-bold shadow-lg shadow-[#0059b5]/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+-              Explore Talent
+-            </button>
+-            <a
+-              href="#"
+-              className="group flex items-center gap-1 text-sm font-bold text-[#0059b5] px-8 py-4"
+-            >
+-              Watch Demo
+-              <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
+-                chevron_right
+-              </span>
+-            </a>
+-          </div>
+-        </section>
++  // Monitor scroll height to trigger navbar opacity
++  useEffect(() => {
++    const handleScroll = () => {
++      if (window.scrollY > 20) {
++        setIsScrolled(true);
++      } else {
++        setIsScrolled(false);
++      }
++    };
++    window.addEventListener("scroll", handleScroll);
++    return () => window.removeEventListener("scroll", handleScroll);
++  }, []);
+ 
+-        {/* ── Mission / USP ── */}
+-        <section className="max-w-[980px] mx-auto px-6 mb-20">
+-          <div className="bg-white border border-[#c1c6d6]/30 rounded-2xl p-10 md:p-16 text-center relative overflow-hidden group">
+-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#0059b5]/5 rounded-full -mr-32 -mt-32 transition-transform group-hover:scale-110" />
+-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#0059b5]/5 rounded-full -ml-32 -mb-32 transition-transform group-hover:scale-110" />
+-            <div className="relative z-10">
+-              <span className="text-xs font-bold text-[#0059b5] tracking-[0.2em] uppercase mb-6 block">
+-                Our Mission
+-              </span>
+-              <h2 className="text-[40px] font-semibold leading-tight tracking-[-0.02em] text-[#1a1c1d] mb-6 max-w-3xl mx-auto">
+-                India's first talent operating system
+-              </h2>
+-              <p className="text-xl text-[#5f5e60] max-w-4xl mx-auto leading-relaxed">
+-                Connecting creators, freelancers and on-ground professionals
+-                through a unified hiring collaboration and a{" "}
+-                <span className="text-[#1a1c1d] font-semibold">
+-                  trustable risk-free ecosystem
+-                </span>
+-                .
+-              </p>
+-            </div>
+-          </div>
+-        </section>
++  // Use Framer Motion useScroll hook to drive pinned text fading
++  const { scrollYProgress } = useScroll();
++  const textOpacity = useTransform(scrollYProgress, [0.08, 0.26], [1, 0]);
++  const textScale = useTransform(scrollYProgress, [0.08, 0.26], [1, 0.94]);
++  const textY = useTransform(scrollYProgress, [0.08, 0.26], [0, -40]);
+ 
+-        {/* ── Product Visual ── */}
+-        <section className="max-w-[1200px] mx-auto px-6 mb-20">
+-          <div className="relative overflow-hidden rounded-2xl bg-[#eeeef0] border border-[#c1c6d6]/30">
+-            <img
+-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFnmZrp1Cgp7L7oQQX2JLPd5EG2lbfxR5BEvP_mSTQTcQYTC9jYFspkaEnQh5rq6ejhZedBo0S0ffeQ4X7rYrJvQ6i2opWLlCqR7qyZA4Fo41eqUTiEm5TMfI-3niSvyGnyA9nxtfcFMkzLsJT5KI9G0pZfsmKl7fujTOBqZ67ZaS3Z03HY0HecEE41XcEJv27C6CZWdpPFA4F01k5gM0_OEHZNrz2lHZm50j9xafbry15IgFY8to8beKgOOWe9f7iE_IqG_-N1Qzo"
+-              alt="Collaborative team at work"
+-              className="w-full aspect-[21/9] object-cover"
+-            />
+-            {/* Floating card */}
+-            <div className="absolute bottom-10 left-10 hidden md:flex items-center gap-4 bg-[#1a1c1d]/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 text-white">
+-              <div className="w-12 h-12 rounded-xl bg-[#0059b5] flex items-center justify-center">
+-                <span
+-                  className="material-symbols-outlined text-white"
+-                  style={{ fontVariationSettings: "'FILL' 1" }}
+-                >
+-                  groups
+-                </span>
+-              </div>
+-              <div>
+-                <div className="text-sm font-bold text-white">
+-                  10K+ Creators
+-                </div>
+-                <div className="text-xs font-semibold text-white/60">
+-                  Across multiple niches
+-                </div>
+-              </div>
+-            </div>
+-          </div>
+-        </section>
++  // Stacking slide definitions
++  const slides = [
++    {
++      label: "sparks offers",
++      bg: "/assets/desktop-sparks-bg.webp",
++      title: "Instant cashback with spark",
++      desc: "Get new deals every week on your favourite brands. No codes, no waiting, just instant cashback credited directly.",
++      badgeText: "spark cashback",
++      badgeSub: "27 Jan '26",
++      badgeValue: "₹100",
++      badgeIcon: "bolt",
++      badgeIconBg: "bg-orange-500",
++    },
++    {
++      label: "slice in 3",
++      bg: "/assets/desktop-slice-in-3-bg.webp",
++      title: "Split your bills, interest free",
++      desc: "Pay in 3 monthly parts with zero extra fees or interest. Splitting transactions has never been this simple.",
++      badgeText: "slice in 3",
++      badgeSub: "Split purchase",
++      badgeValue: "0%",
++      badgeIcon: "split_screen",
++      badgeIconBg: "bg-[#8b5cf6]",
++    },
++    {
++      label: "Rewards",
++      bg: "/assets/desktop-rewards-bg.webp",
++      title: "Spend anywhere with credit",
++      desc: "India's most flexible payment experience. Use credit wherever UPI is accepted—online, offline, and everywhere in between.",
++      badgeText: "UPI credit card",
++      badgeSub: "Active limit",
++      badgeValue: "1.5%",
++      badgeIcon: "credit_card",
++      badgeIconBg: "bg-emerald-500",
++    }
++  ];
+ 
+-        {/* ── Search ── */}
+-        <section className="max-w-[980px] mx-auto px-6 mb-20 text-center">
+-          <div className="relative max-w-2xl mx-auto">
+-            <input
+-              type="text"
+-              value={query}
+-              onChange={(e) => setQuery(e.target.value)}
+-              placeholder="Search for 'Video Editor' or 'Mobile Developer'..."
+-              className="w-full bg-[#f3f3f5] border-none rounded-full py-5 px-8 text-base focus:ring-2 focus:ring-[#0059b5] transition-all placeholder:text-[#5f5e60]/50 shadow-sm outline-none"
+-            />
+-            <button className="absolute right-3 top-2.5 bottom-2.5 bg-[#1a1c1d] text-white px-6 rounded-full text-xs font-semibold hover:opacity-90 transition-opacity">
+-              Search
+-            </button>
+-          </div>
+-        </section>
++  return (
++    <div className="bg-white min-h-screen overflow-x-hidden flex flex-col font-sans selection:bg-[#7c3aed]/20">
++      
++      {/* ── GLOBAL HEADER (FIXED & SCROLL-TRIGGERED) ── */}
++      <header className={`fixed top-0 left-0 right-0 z-50 h-20 px-6 md:px-12 flex justify-between items-center transition-all duration-300 ${
++        isScrolled 
++          ? "bg-white/25 backdrop-blur-lg border-b border-white/10 shadow-sm" 
++          : "bg-white border-b border-transparent"
++      }`}>
++        <div>
++          <span className="text-[#7c3aed] font-outfit font-extrabold text-3xl md:text-[34px] tracking-tighter select-none">
++            slice
++          </span>
++        </div>
++        <nav className="flex items-center gap-2 sm:gap-4">
++          <a
++            href="#savings"
++            className={`text-[13px] font-semibold px-[18px] py-[7px] rounded-full transition-all duration-300 border ${
++              isScrolled 
++                ? "bg-white/40 backdrop-blur-sm border-white/25 text-[#1a1c1d] hover:bg-white/65 shadow-sm" 
++                : "bg-[#f4f4f5] border-black/[0.03] text-[#1a1c1d] hover:bg-[#e4e4e7]"
++            }`}
++          >
++            Savings account
++          </a>
++          <a
++            href="#credit"
++            className={`text-[13px] font-semibold px-[18px] py-[7px] rounded-full transition-all duration-300 border ${
++              isScrolled 
++                ? "bg-white/40 backdrop-blur-sm border-white/25 text-[#1a1c1d] hover:bg-white/65 shadow-sm" 
++                : "bg-[#f4f4f5] border-black/[0.03] text-[#1a1c1d] hover:bg-[#e4e4e7]"
++            }`}
++          >
++            UPI credit card
++          </a>
++          <a
++            href="#offer"
++            className={`hidden sm:inline-flex items-center gap-0.5 text-[13px] font-semibold px-[18px] py-[7px] rounded-full transition-all duration-300 border ${
++              isScrolled 
++                ? "bg-white/40 backdrop-blur-sm border-white/25 text-[#1a1c1d] hover:bg-white/65 shadow-sm" 
++                : "bg-[#f4f4f5] border-black/[0.03] text-[#1a1c1d] hover:bg-[#e4e4e7]"
++            }`}
++          >
++            What we offer <span className="text-[10px] text-gray-400 font-bold ml-0.5">+</span>
++          </a>
++        </nav>
++      </header>
++
++      {/* ── SECTION 1: HERO VIEWPORT CARD ── */}
++      <section className="min-h-screen w-screen p-4 pt-24 pb-4 flex items-center justify-center bg-white">
++        <div className="w-full h-[calc(100vh-112px)] max-w-[1400px] bg-white rounded-[24px] md:rounded-[40px] relative overflow-hidden flex flex-col justify-between p-6 md:p-12 shadow-sm border border-[#e4e4e7] animate-fade-in">
++          
++          {/* Background image */}
++          <img
++            src="/assets/desktop-hero-bg.webp"
++            alt="Hero Background"
++            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
++          />
++          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/15 pointer-events-none" />
+ 
+-        {/* ── Value Props ── */}
+-        <section className="max-w-[980px] mx-auto px-6 mb-20">
+-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+-            {VALUE_PROPS.map((vp) => (
+-              <a
+-                key={vp.title}
+-                href="#"
+-                className="block p-8 rounded-2xl bg-white border border-[#c1c6d6]/20 hover:border-[#0059b5] hover:shadow-xl hover:shadow-[#0059b5]/5 transition-all group relative overflow-hidden"
+-              >
+-                <div className="mb-6 w-12 h-12 flex items-center justify-center rounded-2xl bg-[#0059b5]/10 text-[#0059b5] group-hover:bg-[#0059b5] group-hover:text-white transition-colors">
+-                  <span className="material-symbols-outlined">{vp.icon}</span>
+-                </div>
+-                <h3 className="text-2xl font-semibold tracking-tight text-[#1a1c1d] mb-2">
+-                  {vp.title}
+-                </h3>
+-                <p className="text-base text-[#5f5e60] mb-6 leading-relaxed">
+-                  {vp.desc}
+-                </p>
+-                <div className="flex items-center text-[#0059b5] font-bold text-xs gap-1 group-hover:gap-2 transition-all">
+-                  {vp.cta}
+-                  <span className="material-symbols-outlined text-[18px]">
+-                    arrow_forward
+-                  </span>
+-                </div>
+-              </a>
+-            ))}
++          {/* Spacer to align vertical flex layout */}
++          <div className="h-0 w-full relative z-10" />
++
++          {/* Typography */}
++          <div className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto my-auto">
++            <h1 className="text-white text-4xl sm:text-6xl md:text-[84px] font-extrabold tracking-tight leading-[1.05] drop-shadow-md font-outfit">
++              Do right by the money
++            </h1>
++            <p className="text-white/95 text-base sm:text-xl md:text-2xl font-medium mt-4 md:mt-6 tracking-wide drop-shadow-sm">
++              Simple, fast, intelligent banking
++            </p>
+           </div>
+-        </section>
+ 
+-        {/* ── Stats ── */}
+-        <section className="bg-[#1a1c1d] text-white py-24 mb-40">
+-          <div className="max-w-[980px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+-            {STATS.map((s) => (
+-              <div
+-                key={s.label}
+-                className={
+-                  s.border
+-                    ? "border-y md:border-y-0 md:border-x border-white/10 py-6 md:py-0"
+-                    : ""
+-                }
+-              >
+-                <div className="text-[64px] font-bold leading-none mb-2">
+-                  {s.value}
+-                </div>
+-                <div className="text-sm font-medium text-white/60 tracking-widest uppercase flex items-center justify-center gap-1">
+-                  {s.label}
+-                  {s.star && (
+-                    <span
+-                      className="material-symbols-outlined text-[#0059b5] text-[16px]"
+-                      style={{ fontVariationSettings: "'FILL' 1" }}
+-                    >
+-                      star
+-                    </span>
+-                  )}
+-                </div>
+-              </div>
+-            ))}
++          {/* Bottom CTA */}
++          <div className="relative z-10 flex justify-center w-full pb-2 md:pb-4">
++            <div className="bg-white/20 backdrop-blur-md border border-white/20 rounded-full p-1 flex items-center gap-2 max-w-md w-fit cta-pulse">
++              <span className="text-white text-[11px] sm:text-xs font-semibold px-4 tracking-wide whitespace-nowrap">
++                Trusted by 20mn+ Indians
++              </span>
++              <button className="bg-[#a855f7] hover:bg-[#9333ea] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-full transition-all duration-300 active:scale-95 shadow-md shadow-[#a855f7]/20">
++                Get slice
++              </button>
++            </div>
+           </div>
+-        </section>
+ 
+-        {/* ── Final CTA ── */}
+-        <section className="max-w-[980px] mx-auto px-6 text-center mb-40">
+-          <h2 className="text-[56px] font-bold tracking-[-0.03em] text-[#1a1c1d] mb-4">
+-            Ready to scale your team?
++        </div>
++      </section>
++
++      {/* ── SECTION 2 & 3: STACKABLE SCROLL PINNING CONTAINER ── */}
++      <div className="relative min-h-[350vh] bg-white px-4 pb-20 flex flex-col items-center">
++        
++        {/* Sticky Pinned Text (Fades out and scales down as scroll progresses) */}
++        <motion.div
++          style={{ opacity: textOpacity, scale: textScale, y: textY }}
++          className="sticky top-28 z-0 py-20 px-6 md:px-16 max-w-5xl mx-auto flex flex-col items-start bg-white w-full pointer-events-none"
++        >
++          <h2 className="text-[#3b0764] text-4xl sm:text-6xl md:text-[76px] font-extrabold tracking-tight leading-[1.1] font-outfit">
++            Spend anywhere <br /> with UPI credit card
+           </h2>
+-          <p className="text-xl text-[#5f5e60] mb-6 leading-relaxed">
+-            Join BridgeNow and connect with the world's most talented creators
+-            today.
++          <p className="text-[#5b21b6] text-base sm:text-xl md:text-2xl font-semibold mt-6 md:mt-8 tracking-wide leading-relaxed max-w-2xl">
++            India's most flexible payment experience. Use credit wherever UPI is accepted online, offline, and everywhere in between.
+           </p>
+-          <button className="bg-[#0059b5] text-white px-12 py-5 rounded-full text-sm font-bold hover:shadow-2xl transition-all">
+-            Get Started Now
+-          </button>
+-        </section>
+-      </main>
++        </motion.div>
+ 
+-      {/* ── Footer ── */}
+-      <footer className="bg-[#f9f9fb] border-t border-[#c1c6d6]/30 py-20">
+-        <div className="max-w-[980px] mx-auto px-6 flex flex-col items-center gap-4">
+-          <div className="flex flex-col items-center">
+-            <span className="text-2xl font-bold text-[#1a1c1d] leading-none">
+-              BridgeNow
+-            </span>
+-            <span className="text-[10px] text-[#0059b5] font-bold uppercase tracking-[0.2em] mt-1">
+-              Where talent meets opportunity
+-            </span>
+-          </div>
+-          <div className="flex gap-8 mb-4">
+-            {FOOTER_LINKS.map((l) => (
+-              <a
+-                key={l}
+-                href="#"
+-                className="text-xs font-semibold text-[#5f5e60] hover:text-[#0059b5] transition-colors"
+-              >
+-                {l}
+-              </a>
+-            ))}
+-          </div>
+-          <p className="text-xs font-semibold text-[#5f5e60]">
+-            © 2024 BridgeNow. India's first talent operating system.
+-          </p>
++        {/* Overlapping Sticky Cards Stack */}
++        <div className="w-full max-w-[1400px] flex flex-col gap-0 relative z-10 -mt-[40vh]">
++          {slides.map((slide, idx) => (
++            <ScrollCard
++              key={idx}
++              slide={slide}
++              idx={idx}
++              totalSlides={slides.length}
++              cardVariants={cardVariants}
++            />
++          ))}
+         </div>
+-      </footer>
++
++      </div>
++
+     </div>
+   );
+ }
